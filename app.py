@@ -4,11 +4,10 @@ import google.generativeai as genai
 # --- PAGE SETUP ---
 st.set_page_config(page_title="My AI English Tutor", page_icon="👨‍🏫", layout="centered")
 
-# --- API KEY LOADING ---
+# --- SECURE API KEY ---
 if "GEMINI_API_KEY" in st.secrets:
     try:
         api_key = st.secrets["GEMINI_API_KEY"].strip()
-        # Versioning issue fix panna explicitly transport set panrom
         genai.configure(api_key=api_key)
     except Exception as e:
         st.error(f"API Setup Error: {e}")
@@ -16,13 +15,6 @@ if "GEMINI_API_KEY" in st.secrets:
 else:
     st.error("Secrets-la API key illa nanba!")
     st.stop()
-
-# --- TEACHER PROMPT ---
-TEACHER_PROMPT = (
-    "Act as a patient and friendly English Teacher named 'Gemini Nanban'. "
-    "Check for grammar mistakes, explain them simply, and provide the correct version. "
-    "Reply naturally to keep the conversation going."
-)
 
 st.title("👨‍🏫 My AI English Tutor")
 
@@ -42,26 +34,31 @@ if prompt := st.chat_input("Type your English sentence here..."):
 
     with st.chat_message("assistant"):
         try:
-            # TRYING THE MOST COMPATIBLE MODEL NAME FOR V1BETA ERROR
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            # STRATEGY: Directly calling the model via string name
+            # 404 error avoid panna generic 'gemini-1.5-flash' use panrom
+            model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+            
+            instruction = "Act as a friendly English teacher. Correct grammar mistakes and reply naturally."
             
             with st.spinner("Teacher is thinking..."):
-                response = model.generate_content(f"{TEACHER_PROMPT}\nStudent: {prompt}")
+                response = model.generate_content(f"{instruction}\nStudent says: {prompt}")
             
             if response.text:
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             
         except Exception as e:
-            # If flash-latest fails, trying the generic gemini-pro
+            # Fallback strategy if Flash is not found
             try:
-                model_alt = genai.GenerativeModel('gemini-pro')
-                response_alt = model_alt.generate_content(f"{TEACHER_PROMPT}\nStudent: {prompt}")
+                model_alt = genai.GenerativeModel(model_name="gemini-pro")
+                response_alt = model_alt.generate_content(prompt)
                 st.markdown(response_alt.text)
                 st.session_state.messages.append({"role": "assistant", "content": response_alt.text})
             except Exception as e2:
-                st.error(f"Detailed Error: {str(e2)}")
-                st.info("Nanba, fresh API key generate panni 5 mins wait panni try pannunga!")
+                st.error(f"Flash Error: {str(e)}")
+                st.error(f"Pro Error: {str(e2)}")
+                st.info("Nanba, unga API key (Screenshot 14) correct-ah Secrets-la save aagi irukka-nu check pannunga.")
+
 
 
 
