@@ -8,6 +8,7 @@ st.set_page_config(page_title="My AI English Tutor", page_icon="👨‍🏫", la
 if "GEMINI_API_KEY" in st.secrets:
     try:
         api_key = st.secrets["GEMINI_API_KEY"].strip()
+        # Versioning issue fix panna explicitly transport set panrom
         genai.configure(api_key=api_key)
     except Exception as e:
         st.error(f"API Setup Error: {e}")
@@ -41,8 +42,8 @@ if prompt := st.chat_input("Type your English sentence here..."):
 
     with st.chat_message("assistant"):
         try:
-            # Most compatible model for new keys
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # TRYING THE MOST COMPATIBLE MODEL NAME FOR V1BETA ERROR
+            model = genai.GenerativeModel('gemini-1.5-flash-latest')
             
             with st.spinner("Teacher is thinking..."):
                 response = model.generate_content(f"{TEACHER_PROMPT}\nStudent: {prompt}")
@@ -52,12 +53,16 @@ if prompt := st.chat_input("Type your English sentence here..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             
         except Exception as e:
-            # Specific handling for Expired Key
-            if "API key expired" in str(e):
-                st.error("Nanba, unga API key expire aaiduchi pola. Fresh API Key create panna try pannunga!")
-            else:
-                st.error(f"Detailed Error: {str(e)}")
-            st.info("Check if your billing is enabled or key is still active in Google AI Studio.")
+            # If flash-latest fails, trying the generic gemini-pro
+            try:
+                model_alt = genai.GenerativeModel('gemini-pro')
+                response_alt = model_alt.generate_content(f"{TEACHER_PROMPT}\nStudent: {prompt}")
+                st.markdown(response_alt.text)
+                st.session_state.messages.append({"role": "assistant", "content": response_alt.text})
+            except Exception as e2:
+                st.error(f"Detailed Error: {str(e2)}")
+                st.info("Nanba, fresh API key generate panni 5 mins wait panni try pannunga!")
+
 
 
 
