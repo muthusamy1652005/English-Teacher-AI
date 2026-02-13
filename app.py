@@ -8,19 +8,14 @@ st.set_page_config(page_title="English Tutor AI", page_icon="👨‍🏫", layou
 if "GEMINI_API_KEY" in st.secrets:
     try:
         API_KEY = st.secrets["GEMINI_API_KEY"].strip()
-        genai.configure(api_key=API_KEY)
+        # Inga namma explicitly version specify pannuvom
+        genai.configure(api_key=API_KEY, transport='grpc') 
     except Exception as e:
-        st.error(f"API Configuration Error: {e}")
+        st.error(f"Configuration Error: {e}")
         st.stop()
 else:
-    st.error("Secrets-la 'GEMINI_API_KEY' illa nanba!")
+    st.error("Secrets-la API key illa nanba!")
     st.stop()
-
-# --- TEACHER SYSTEM PROMPT ---
-TEACHER_PROMPT = (
-    "Act as a patient and friendly English Teacher named 'Gemini Nanban'. "
-    "Check for grammar mistakes, explain them simply, and provide the correct version."
-)
 
 st.title("👨‍🏫 My AI English Tutor")
 
@@ -40,20 +35,27 @@ if prompt := st.chat_input("Type your English sentence here..."):
 
     with st.chat_message("assistant"):
         try:
-            # TRYING 'gemini-pro' INSTEAD OF 'gemini-1.5-flash'
-            # Ithu ella API key-kum support aagum
-            model = genai.GenerativeModel('gemini-pro')
+            # TRYING THE MOST COMPATIBLE MODEL NAME
+            model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
             
-            full_query = f"{TEACHER_PROMPT}\n\nStudent says: {prompt}"
+            instruction = "Act as an English teacher. Correct grammar mistakes and reply friendly."
             
-            with st.spinner("Thinking..."):
-                response = model.generate_content(full_query)
-                teacher_reply = response.text
+            with st.spinner("Teacher is thinking..."):
+                # Beta feature use pannama simple-aa request anuppuvom
+                response = model.generate_content(f"{instruction}\nStudent: {prompt}")
             
-            st.markdown(teacher_reply)
-            st.session_state.messages.append({"role": "assistant", "content": teacher_reply})
+            if response.text:
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
             
         except Exception as e:
-            st.error(f"Error: {str(e)}")
-            st.info("Nanba, 'gemini-pro' mathiyum varalana sollunga, vera oru solution iruku!")
+            # Oru velai flash-latest work aagalana, 'gemini-1.5-flash-001' try pannuvom
+            try:
+                model_alt = genai.GenerativeModel('gemini-1.5-flash-001')
+                response = model_alt.generate_content(f"Teacher: {prompt}")
+                st.markdown(response.text)
+            except Exception as e2:
+                st.error(f"Actual Error: {str(e2)}")
+                st.info("Nanba, unga API key romba restrict aagi irukku pola. Fresh API Key use panna try pannunga!")
+
 
