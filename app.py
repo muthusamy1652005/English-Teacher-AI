@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="My AI English Tutor", page_icon="👨‍🏫", layout="centered")
+st.set_page_config(page_title="My AI English Tutor", page_icon="👨‍🏫")
 
 # --- SECURE API KEY ---
 if "GEMINI_API_KEY" in st.secrets:
@@ -34,13 +34,13 @@ if prompt := st.chat_input("Type your English sentence here..."):
 
     with st.chat_message("assistant"):
         try:
-            # STRATEGY: Directly calling the model via string name
-            # 404 error avoid panna generic 'gemini-1.5-flash' use panrom
-            model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+            # Model selection: Explicit name usage
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             instruction = "Act as a friendly English teacher. Correct grammar mistakes and reply naturally."
             
             with st.spinner("Teacher is thinking..."):
+                # Simplified response call
                 response = model.generate_content(f"{instruction}\nStudent says: {prompt}")
             
             if response.text:
@@ -48,16 +48,10 @@ if prompt := st.chat_input("Type your English sentence here..."):
                 st.session_state.messages.append({"role": "assistant", "content": response.text})
             
         except Exception as e:
-            # Fallback strategy if Flash is not found
-            try:
-                model_alt = genai.GenerativeModel(model_name="gemini-pro")
-                response_alt = model_alt.generate_content(prompt)
-                st.markdown(response_alt.text)
-                st.session_state.messages.append({"role": "assistant", "content": response_alt.text})
-            except Exception as e2:
-                st.error(f"Flash Error: {str(e)}")
-                st.error(f"Pro Error: {str(e2)}")
-                st.info("Nanba, unga API key (Screenshot 14) correct-ah Secrets-la save aagi irukka-nu check pannunga.")
+            # Fallback for 404 models error
+            st.error(f"Model Error: {str(e)}")
+            st.info("Nanba, unga API key (Screenshot 14) correct-ah Secrets-la save aagi irukkunnu check pannunga.")
+
 
 
 
