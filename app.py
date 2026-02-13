@@ -5,58 +5,63 @@ import google.generativeai as genai
 st.set_page_config(page_title="English Tutor AI", page_icon="👨‍🏫", layout="centered")
 
 # --- SECURE API KEY LOADING ---
-# GitHub-la key-ah direct-ah podama, Streamlit Cloud settings-la "Secrets"-la poduvom.
-try:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=API_KEY)
-except Exception:
-    st.error("Nanba, Streamlit Secrets-la 'GEMINI_API_KEY' set panna marandhuteenga!")
+# Streamlit Secrets-la irunthu key-ah load panrom
+if "GEMINI_API_KEY" in st.secrets:
+    try:
+        # Key-la spaces irundha remove panna .strip() use panrom
+        API_KEY = st.secrets["GEMINI_API_KEY"].strip()
+        genai.configure(api_key=API_KEY)
+    except Exception as e:
+        st.error(f"API Configuration-la error nanba: {e}")
+        st.stop()
+else:
+    st.error("Secrets-la 'GEMINI_API_KEY' set panna marandhuteenga! Check 'Manage App -> Settings -> Secrets'.")
     st.stop()
 
-# --- SYSTEM PROMPT ---
+# --- TEACHER SYSTEM PROMPT ---
 TEACHER_PROMPT = (
     "Act as a patient and friendly English Teacher named 'Gemini Nanban'. "
-    "Your goal is to help the user practice English. "
-    "1. Always check for grammar mistakes in the student's message. "
-    "2. If there's a mistake, explain it simply in English and give the correct version. "
-    "3. If the sentence is correct, praise the student. "
-    "4. Always reply to their message to keep the conversation flowing naturally."
+    "Check for grammar mistakes, explain them simply in English, "
+    "and provide the corrected version. Always reply to keep the conversation going."
 )
 
-# --- UI DESIGN ---
-st.title("👨‍🏫 Gemini English Tutor")
+st.title("👨‍🏫 My AI English Tutor")
 st.markdown("---")
 
 # Chat history initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
+# Display previous chats
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# --- USER INPUT ---
-if prompt := st.chat_input("Enga, English-la ethachum type pannunga..."):
-    # Display user message
+# --- USER INPUT & AI LOGIC ---
+if prompt := st.chat_input("Type your English sentence here..."):
+    # Add user message to history
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Teacher AI Response Logic
+    # Teacher Response Logic
     with st.chat_message("assistant"):
         try:
+            # Gemini 1.5 Flash model setup
             model = genai.GenerativeModel('gemini-1.5-flash')
-            # Sending full context for better tutoring
+            
+            # Combine instruction with user prompt
             full_query = f"{TEACHER_PROMPT}\n\nStudent says: {prompt}"
             
-            with st.spinner("Teacher is thinking..."):
+            with st.spinner("Nanba, teacher yosikiraaru..."):
                 response = model.generate_content(full_query)
                 teacher_reply = response.text
-                
-            st.markdown(teacher_reply)
             
+            st.markdown(teacher_reply)
             # Save assistant reply to history
             st.session_state.messages.append({"role": "assistant", "content": teacher_reply})
+            
         except Exception as e:
-            st.error("Sorry nanba, server-la chinna problem. Konja neram kazhichu try pannunga.")
+            # Detailed error-ah screen-la kaaturom debugging-kaga
+            st.error(f"Detailed Error: {str(e)}")
+            st.info("Intha error message-ah screenshot anuppunga nanba!")
